@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <LangVersion>8.0</LangVersion>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <nullable>enable</nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NJsonSchema" Version="10.1.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Inspiring.Json\Inspiring.Json.csproj" />
+  </ItemGroup>
+
+</Project>

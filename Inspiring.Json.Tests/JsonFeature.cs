@@ -12,7 +12,7 @@ namespace Inspiring.Json.Tests {
         [Scenario]
         internal void SerializationTests(JsonSerializer s, ContainerClass orig, JObject json, ContainerClass result) {
             GIVEN["a serializer"] = () => s = new JsonSerializer {
-                Converters = { new ContractJsonConverter(new ContractRegistry()) }
+                Converters = { ContractJsonConverter.Default }
             };
 
             WHEN["serialzing a class with a polymorphic property"] = () => json = SerializeJson(

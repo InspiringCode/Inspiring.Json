@@ -5,6 +5,8 @@ using System;
 
 namespace Inspiring.Json.NSwag {
     public class ContractSchemaProcessor : ISchemaProcessor {
+        public static readonly ContractSchemaProcessor Default = new ContractSchemaProcessor(ContractRegistry.Default);
+
         private readonly ContractRegistry _registry;
 
         public ContractSchemaProcessor(ContractRegistry registry)

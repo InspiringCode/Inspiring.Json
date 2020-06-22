@@ -5,12 +5,11 @@ using System.Collections.Concurrent;
 
 namespace Inspiring.Contracts {
     public class ContractRegistry {
+        public static readonly ContractRegistry Default = new ContractRegistry(new DefaultContractFactory<ContractAttribute>());
+
         private readonly IContractFactory _factory;
         private readonly ConcurrentDictionary<Type, IContract> _cache
             = new ConcurrentDictionary<Type, IContract>();
-
-        public ContractRegistry()
-            : this(new DefaultContractFactory<ContractAttribute>()) { }
 
         public ContractRegistry(IContractFactory factory)
             => _factory = factory;

@@ -5,9 +5,13 @@ using System;
 
 namespace Inspiring.Json {
     public class ContractJsonConverter : JsonConverter {
+        public static readonly ContractJsonConverter Default = new ContractJsonConverter();
+
         [ThreadStatic] private static bool _isReading;
         [ThreadStatic] private static bool _isWriting;
         private readonly ContractRegistry _contracts;
+
+        public ContractJsonConverter() : this(ContractRegistry.Default) { }
 
         public ContractJsonConverter(ContractRegistry contracts)
             => _contracts = contracts ?? throw new ArgumentNullException(nameof(contracts));

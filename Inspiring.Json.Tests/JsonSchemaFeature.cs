@@ -20,7 +20,7 @@ namespace Inspiring.Json.Tests {
             GIVEN["a schema generator"] = () => gen = new JsonSchemaGenerator(
                 new JsonSchemaGeneratorSettings {
                     SchemaType = SchemaType.OpenApi3,
-                    SchemaProcessors = { new ContractSchemaProcessor(new ContractRegistry()) },
+                    SchemaProcessors = { ContractSchemaProcessor.Default },
                     FlattenInheritanceHierarchy = true
                 }
             );

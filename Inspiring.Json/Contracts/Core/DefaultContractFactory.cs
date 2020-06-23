@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Inspiring.Json;
 
 namespace Inspiring.Contracts.Core {
     public class DefaultContractFactory<TAttribute> : IContractFactory where TAttribute : Attribute {
@@ -27,8 +28,13 @@ namespace Inspiring.Contracts.Core {
             return NullContract.Instance;
         }
 
-        protected virtual IEnumerable<Type> GetRelatedTypes(Type type)
-            => type.Assembly.GetTypes();
+        protected virtual IEnumerable<Type> GetRelatedTypes(Type type) => 
+            new[] { type.Assembly }
+                .Union(AppDomain
+                    .CurrentDomain
+                    .GetAssemblies()
+                    .Where(a => a.GetCustomAttribute<ContractAssemblyAttribute>() != null))
+                .SelectMany(a => a.GetTypes());
 
         private ContractTypeHierarchy CreateHierarchy(Type baseContractType, string discriminatorName) {
             SubcontractType[] subcontracts = GetRelatedTypes(baseContractType)

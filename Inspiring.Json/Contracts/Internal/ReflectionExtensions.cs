@@ -7,8 +7,19 @@ namespace Inspiring.Contracts {
         public static string? GetDiscriminatorName<TAttribute>(this Type type) where TAttribute : Attribute
             => type.GetCustomAttribute<TAttribute>()?.GetDiscriminatorName();
 
-        public static string? GetDiscriminatorValue<TAttribute>(this Type type) where TAttribute : Attribute
-            => type.GetCustomAttribute<TAttribute>()?.GetDiscriminatorValue();
+        public static string? GetDiscriminatorValue<TAttribute>(this Type type) where TAttribute : Attribute {
+            TAttribute? attr = type.GetCustomAttribute<TAttribute>();
+
+            if (attr == null)
+                return null;
+
+            string? value = attr.GetDiscriminatorValue();
+
+            if (value == null && !type.IsAbstract && !type.IsInterface)
+                return type.Name;
+
+            return value;
+        }
 
         private static string? GetDiscriminatorName<T>(this T instance)
             => Getters<T>.DiscriminatorName(instance);

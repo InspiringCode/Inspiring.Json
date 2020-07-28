@@ -59,6 +59,10 @@ namespace Inspiring.Json.Tests {
             WHEN["the base class has also a discriminator value"] = null;
             THEN["the subcontract types include the base type"] = () => h.Subcontracts
                 .Should().ContainEquivalentOf(new SubcontractType(typeof(BaseB), "Base-B"));
+
+            WHEN["not specifying a discriminator value"] = null;
+            THEN["the class name is used by default"] = () => h.GetDiscriminatorValue(typeof(Subclass_B_2)).Should().Be(nameof(Subclass_B_2));
+            AND["it can be resolve by its class name"] = () => h.ResolveType(nameof(Subclass_B_2));
         }
 
         internal class TestContractFactory : DefaultContractFactory<ContractAttribute> {
@@ -84,5 +88,8 @@ namespace Inspiring.Json.Tests {
 
         [Contract("Subclass-A1")]
         private class Subclass_B : BaseB { }
+
+        [Contract]
+        private class Subclass_B_2 : BaseB { }
     }
 }

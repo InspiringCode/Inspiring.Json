@@ -1,9 +1,9 @@
-﻿using System;
-using System.Reflection;
+﻿using Inspiring.Json;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using Inspiring.Json;
+using System.Reflection;
 
 namespace Inspiring.Contracts.Core {
     public class DefaultContractFactory<TAttribute> : IContractFactory where TAttribute : Attribute {
@@ -12,14 +12,19 @@ namespace Inspiring.Contracts.Core {
 
         public IContract CreateContract(Type type) {
             if (type.GetCustomAttribute<TAttribute>(inherit: false) != null) {
-                var baseInfo = GetTypeWithBaseTypes(type)
+                var baseContracts = GetTypeWithBaseTypes(type)
                     .Select(t => (Type: t, DiscriminatorName: t.GetDiscriminatorName<TAttribute>()))
-                    .SingleOrDefault(x => !String.IsNullOrWhiteSpace(x.DiscriminatorName));
+                    .Where(x => !String.IsNullOrWhiteSpace(x.DiscriminatorName))
+                    .ToArray();
 
-                if (baseInfo.DiscriminatorName != null) {
+                if (baseContracts.Length > 1) {
+                    throw new ArgumentException(Localized.CreateContract_DiscriminatorSpecifiedMultipleTimes.FormatWith(type.Name));
+                }
+
+                if (baseContracts.Length == 1) {
                     ContractTypeHierarchy hierarchy = _hierarchyCache.GetOrAdd(
-                        baseInfo.Type,
-                        t => CreateHierarchy(t, baseInfo.DiscriminatorName));
+                        baseContracts[0].Type,
+                        t => CreateHierarchy(t, baseContracts[0].DiscriminatorName!));
 
                     return new PolymorphicContract(hierarchy);
                 }
@@ -28,7 +33,7 @@ namespace Inspiring.Contracts.Core {
             return NullContract.Instance;
         }
 
-        protected virtual IEnumerable<Type> GetRelatedTypes(Type type) => 
+        protected virtual IEnumerable<Type> GetRelatedTypes(Type type) =>
             new[] { type.Assembly }
                 .Union(AppDomain
                     .CurrentDomain
@@ -45,7 +50,7 @@ namespace Inspiring.Contracts.Core {
                 .ToArray();
 
             return new ContractTypeHierarchy(
-                baseContractType, 
+                baseContractType,
                 discriminatorName,
                 subcontracts);
         }

@@ -63,7 +63,7 @@ namespace Inspiring.Json {
             }
 
             if (!_contracts.IsPolymorphic(objectType, out ContractTypeHierarchy? hierarchy))
-                throw new ArgumentException();
+                throw new InvalidOperationException("ReadJson must only be called for types for which CanConvert returns true.");
 
             JObject json = serializer.Deserialize<JObject>(reader)!;
 
@@ -72,10 +72,24 @@ namespace Inspiring.Json {
                 .Value<string>();
 
             if (String.IsNullOrEmpty(discriminator)) {
-                throw new InvalidOperationException();
+                throw new JsonSerializationException(
+                    Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(
+                        objectType.Name, 
+                        hierarchy!.DiscriminatorName));
             }
 
-            Type subtype = hierarchy.ResolveType(discriminator!); ;
+            Type subtype;
+            try {
+                subtype = hierarchy.ResolveType(discriminator!);
+            } catch (ContractException ex) {
+                throw new JsonSerializationException(
+                    Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(
+                        objectType.Name,
+                        discriminator,
+                        hierarchy!.DiscriminatorName),
+                    ex);
+            }
+
             return serializer.Deserialize(json.CreateReader(), subtype)!;
         }
 

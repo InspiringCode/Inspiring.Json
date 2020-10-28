@@ -1,5 +1,6 @@
 ﻿using Inspiring.Contracts;
 using Inspiring.Contracts.Core;
+using Inspiring.Json;
 using System;
 using System.Collections.Concurrent;
 
@@ -18,6 +19,17 @@ namespace Inspiring.Contracts {
             type = type ?? throw new ArgumentNullException(nameof(type));
             IContract c = _cache.GetOrAdd(type, _factory.CreateContract);
             return c.IsPolymorphic(out hierarchy);
+        }
+
+        public ContractTypeHierarchy GetHierarchyInfo(Type type) {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (IsPolymorphic(type, out ContractTypeHierarchy? info)) {
+                return info!;
+            }
+
+            throw new ContractException(Localized.GetHierarchyInfo_NoContractType.FormatWith(type.Name));
         }
     }
 }

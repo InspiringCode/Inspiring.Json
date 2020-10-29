@@ -33,15 +33,34 @@ namespace Inspiring.Json.Tests {
             WHEN["deserializing a JSON without discriminator property"] = () => 
                 new Action(() => DeserializeJson<IBase>("{ 'Value': '1' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type"));
+                    .WithMessage(Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type"))
+                    .Which.Data["DiscriminatorName"].Should().Be("Type");
         }
 
         [Scenario]
-        internal void InvalidDiscriminatorValueInJson() {
-            WHEN["deserializing a JSON without an invalid discrminator value"] = () => 
-                new Action(() => DeserializeJson<IBase>("{ 'Type': '<INVALID>' }"))
+        internal void InvalidDiscriminatorValueInJson(JsonSerializationException ex) {
+            WHEN["deserializing a JSON without an invalid discrminator value"] = () =>
+                ex = new Action(() => DeserializeJson<IBase>("{ 'Type': '<INVALID>' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type"));
+                    .WithMessage(Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type"))
+                    .Which;
+            THEN["the exception contains additional data"] = () => {
+                ex.Data["DiscriminatorName"].Should().Be("Type");
+                ex.Data["DiscriminatorValue"].Should().Be("<INVALID>");
+            };
+        }
+
+        [Scenario]
+        internal void ExceptionData(ArgumentOutOfRangeException ex) {
+            WHEN["the object constructor throws an exception"] = () =>
+                ex = new Action(() => DeserializeJson<IBase>("{ 'Type': 'Subtype', 'Value': 'INVALID' }"))
+                    .Should().Throw<ArgumentOutOfRangeException>()
+                    .Which;
+            THEN["the exception contains additional data"] = () => {
+                ex.Data["DiscriminatorName"].Should().Be("Type");
+                ex.Data["DiscriminatorValue"].Should().Be("Subtype");
+                ex.Data["TargetType"].Should().Be(typeof(Subtype));
+            };
         }
 
         public class ContainerClass {
@@ -51,8 +70,16 @@ namespace Inspiring.Json.Tests {
         [Contract(DiscriminatorName = "Type")]
         public interface IBase { }
 
+        [Contract]
         public class Subtype : IBase {
-            public string Value { get; set; }
+            public string Value { get; }
+
+            public Subtype(string value) {
+                if (value == "INVALID")
+                    throw new ArgumentOutOfRangeException(nameof(value));
+
+                Value = value;
+            }
         }
 
         public class Subtype_1 : IBase {

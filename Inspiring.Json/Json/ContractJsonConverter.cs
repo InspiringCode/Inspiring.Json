@@ -71,26 +71,42 @@ namespace Inspiring.Json {
                 .GetValue(hierarchy!.DiscriminatorName)?
                 .Value<string>();
 
-            if (String.IsNullOrEmpty(discriminator)) {
-                throw new JsonSerializationException(
-                    Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(
-                        objectType.Name, 
-                        hierarchy!.DiscriminatorName));
-            }
+            Type? subtype = null;
 
-            Type subtype;
+            if (String.IsNullOrEmpty(discriminator)) {
+                throw addContext(
+                    new JsonSerializationException(
+                        Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(
+                            objectType.Name, 
+                            hierarchy!.DiscriminatorName)));
+            }
+            
             try {
                 subtype = hierarchy.ResolveType(discriminator!);
             } catch (ContractException ex) {
-                throw new JsonSerializationException(
-                    Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(
-                        objectType.Name,
-                        discriminator,
-                        hierarchy!.DiscriminatorName),
-                    ex);
+               throw addContext(
+                    new JsonSerializationException(
+                        Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(
+                            objectType.Name,
+                            discriminator,
+                            hierarchy!.DiscriminatorName), ex));
             }
 
-            return serializer.Deserialize(json.CreateReader(), subtype)!;
+            try {
+                return serializer.Deserialize(json.CreateReader(), subtype)!;
+            } catch (Exception ex) {
+                addContext(ex);
+                throw;
+            }
+
+            T addContext<T>(T ex) where T : Exception {
+                ex.Data["DiscriminatorName"] = hierarchy!.DiscriminatorName;
+                if (discriminator != null)
+                    ex.Data["DiscriminatorValue"] = discriminator;
+                if (subtype != null)
+                    ex.Data["TargetType"] = subtype;
+                return ex;
+            } 
         }
 
         private void WriteJsonCore(JsonWriter writer, object? value, JsonSerializer serializer) {

@@ -21,6 +21,7 @@ namespace Inspiring.Json.Tests {
 
             THEN["IsPolymorphic is true only for contract types of a hierarchy"] = () => {
                 reg.IsPolymorphic(typeof(IBaseA), out _).Should().BeTrue();
+                reg.IsPolymorphic(typeof(IBaseA_1), out _).Should().BeTrue();
                 reg.IsPolymorphic(typeof(Subclass_A1), out _).Should().BeTrue();
                 reg.IsPolymorphic(typeof(Subclass_A2), out _).Should().BeFalse();
                 reg.IsPolymorphic(typeof(Subclass_A2_1), out _).Should().BeTrue();
@@ -30,6 +31,9 @@ namespace Inspiring.Json.Tests {
                 reg.IsPolymorphic(typeof(Subclass_A1), out h);
 
                 reg.IsPolymorphic(typeof(IBaseA), out ContractTypeHierarchy second);
+                second.Should().BeSameAs(h);
+
+                reg.IsPolymorphic(typeof(IBaseA_1), out second);
                 second.Should().BeSameAs(h);
 
                 reg.IsPolymorphic(typeof(Subclass_A2_1), out second);
@@ -78,9 +82,9 @@ namespace Inspiring.Json.Tests {
                     .WithMessage(String.Format(Localized.ResolveType_NotFound, "Subclass_B_2", nameof(IBaseA)));
 
             WHEN["reflecting a contract type that has specified the specified the discriminator name multiple times an ArgumentException is thrown"] = () =>
-                new Action(() => reg.IsPolymorphic(typeof(IBaseA_1), out _))
+                new Action(() => reg.IsPolymorphic(typeof(IBaseA_2), out _))
                     .Should().Throw<ArgumentException>()
-                    .WithMessage(String.Format(Localized.CreateContract_DiscriminatorSpecifiedMultipleTimes, nameof(IBaseA_1)));
+                    .WithMessage(String.Format(Localized.CreateContract_DiscriminatorSpecifiedMultipleTimes, nameof(IBaseA_2)));
 
             WHEN["getting the hierarchy of a non contract class THEN a ContractException is thrown"] = () =>
                 new Action(() => reg.GetHierarchyInfo(typeof(InvalidContractClass)))
@@ -98,6 +102,12 @@ namespace Inspiring.Json.Tests {
         [Contract(DiscriminatorName = "Type")]
         private interface IBaseA { }
 
+        [Contract]
+        private interface IBaseA_1 : IBaseA { }
+
+        [Contract(DiscriminatorName = "Type")]
+        private interface IBaseA_2 : IBaseA { }
+
         [Contract("Subclass-A1")]
         private class Subclass_A1 : IBaseA { }
 
@@ -114,9 +124,6 @@ namespace Inspiring.Json.Tests {
 
         [Contract]
         private class Subclass_B_2 : BaseB { }
-
-        [Contract(DiscriminatorName = "Type")]
-        private interface IBaseA_1 : IBaseA { }
 
         [Contract]
         public class InvalidContractClass { }

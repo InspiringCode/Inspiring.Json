@@ -29,37 +29,62 @@ namespace Inspiring.Json.Tests {
 
 
         [Scenario]
-        internal void NoDiscriminatorValueInJson() {
-            WHEN["deserializing a JSON without discriminator property"] = () => 
-                new Action(() => DeserializeJson<IBase>("{ 'Value': '1' }"))
+        internal void NoDiscriminatorValueInJson(JsonSerializationException ex) {
+            WHEN["deserializing a JSON without discriminator property"] = () =>
+                ex = new Action(() => DeserializeJson<IBase>("\n{ 'Value': '1' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type"))
-                    .Which.Data["DiscriminatorName"].Should().Be("Type");
+                    .WithMessage(Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type") + "*")
+                    .Which;
+            
+            THEN["the exception contains additional data"] = () => ex.Data["DiscriminatorName"].Should().Be("Type");
+            AND["it contains position information"] = () => {
+                ex.LineNumber.Should().Be(2);
+                ex.LinePosition.Should().Be(1);
+                ex.Message.Should().Contain("line 2, position 1");
+            };
         }
 
         [Scenario]
         internal void InvalidDiscriminatorValueInJson(JsonSerializationException ex) {
             WHEN["deserializing a JSON without an invalid discrminator value"] = () =>
-                ex = new Action(() => DeserializeJson<IBase>("{ 'Type': '<INVALID>' }"))
+                ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': '<INVALID>' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type"))
+                    .WithMessage(Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type") + "*")
                     .Which;
             THEN["the exception contains additional data"] = () => {
                 ex.Data["DiscriminatorName"].Should().Be("Type");
                 ex.Data["DiscriminatorValue"].Should().Be("<INVALID>");
+            };
+            AND["it contains position information"] = () => {
+                ex.LineNumber.Should().Be(3);
+                ex.LinePosition.Should().Be(1);
+                ex.Message.Should().Contain("line 3, position 1");
             };
         }
 
         [Scenario]
         internal void ExceptionData(ArgumentOutOfRangeException ex) {
             WHEN["the object constructor throws an exception"] = () =>
-                ex = new Action(() => DeserializeJson<IBase>("{ 'Type': 'Subtype', 'Value': 'INVALID' }"))
+                ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': 'Subtype', 'Value': 'INVALID' }"))
                     .Should().Throw<ArgumentOutOfRangeException>()
                     .Which;
             THEN["the exception contains additional data"] = () => {
                 ex.Data["DiscriminatorName"].Should().Be("Type");
                 ex.Data["DiscriminatorValue"].Should().Be("Subtype");
                 ex.Data["TargetType"].Should().Be(typeof(Subtype));
+            };
+        }
+
+        [Scenario]
+        internal void PositionInfo(JsonReaderException ex) {
+            WHEN["the deserialization fails"] = () => ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': 'Subtype', 'IntValue': 'INVALID' }"))
+                    .Should().Throw<JsonReaderException>()
+                    .Which;
+
+            THEN["the exception has the correct position info set"] = () => {
+                ex.LineNumber.Should().Be(3);
+                ex.LinePosition.Should().Be(42);
+                ex.Message.Should().Contain("Path 'IntValue', line 3, position 42");
             };
         }
 
@@ -73,6 +98,8 @@ namespace Inspiring.Json.Tests {
         [Contract]
         public class Subtype : IBase {
             public string Value { get; }
+
+            public int IntValue { get; set; }
 
             public Subtype(string value) {
                 if (value == "INVALID")

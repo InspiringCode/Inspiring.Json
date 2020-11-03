@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Text.RegularExpressions;
 
 namespace Inspiring.Json {
     public class ContractJsonConverter : JsonConverter {
@@ -65,7 +66,13 @@ namespace Inspiring.Json {
             if (!_contracts.IsPolymorphic(objectType, out ContractTypeHierarchy? hierarchy))
                 throw new InvalidOperationException("ReadJson must only be called for types for which CanConvert returns true.");
 
-            JObject json = serializer.Deserialize<JObject>(reader)!;
+            PositionInfo position = new PositionInfo(reader);
+
+            // IMPORTANT: To get correct LineNumber/LinePosition infos in thrown exceptions we have to use JObject.Load 
+            // here and NOT serializer.Deserialize<JObject> which does not set any positions! It shouldn't be a problem
+            // that we don't use the JsonSerializerSettings here because we are just buffering the JSON 1-to-1. These
+            // settings are considered when we actually deserialize the concrete type at the end of this method.
+            JObject json = JObject.Load(reader);
 
             string? discriminator = json
                 .GetValue(hierarchy!.DiscriminatorName)?
@@ -75,21 +82,23 @@ namespace Inspiring.Json {
 
             if (String.IsNullOrEmpty(discriminator)) {
                 throw addContext(
-                    new JsonSerializationException(
+                    position.CreateSerializationException(
                         Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(
-                            objectType.Name, 
-                            hierarchy!.DiscriminatorName)));
+                            objectType.Name,
+                            hierarchy!.DiscriminatorName
+                        )));
             }
-            
+
             try {
                 subtype = hierarchy.ResolveType(discriminator!);
             } catch (ContractException ex) {
-               throw addContext(
-                    new JsonSerializationException(
+                throw addContext(
+                    position.CreateSerializationException(
                         Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(
                             objectType.Name,
                             discriminator,
-                            hierarchy!.DiscriminatorName), ex));
+                            hierarchy!.DiscriminatorName),
+                        ex));
             }
 
             try {
@@ -99,14 +108,14 @@ namespace Inspiring.Json {
                 throw;
             }
 
-            T addContext<T>(T ex) where T : Exception {
+            Exception addContext(Exception ex) {
                 ex.Data["DiscriminatorName"] = hierarchy!.DiscriminatorName;
                 if (discriminator != null)
                     ex.Data["DiscriminatorValue"] = discriminator;
                 if (subtype != null)
                     ex.Data["TargetType"] = subtype;
                 return ex;
-            } 
+            }
         }
 
         private void WriteJsonCore(JsonWriter writer, object? value, JsonSerializer serializer) {
@@ -122,6 +131,32 @@ namespace Inspiring.Json {
             } else {
                 writer.WriteNull();
             }
+        }
+
+        private class PositionInfo {
+            public readonly bool HasInfo;
+            private readonly string? Path;
+            private readonly int Line;
+            private readonly int Position;
+
+            public PositionInfo(JsonReader reader) {
+                Path = reader.Path;
+                if (reader is IJsonLineInfo info && info.HasLineInfo()) {
+                    Line = info.LineNumber;
+                    Position = info.LinePosition;
+                    HasInfo = true;
+                }
+            }
+
+            public JsonSerializationException CreateSerializationException(string message, Exception? inner = null) =>
+                HasInfo ?
+                    new JsonSerializationException(AddInfoTo(message), Path!, Line, Position, inner) :
+                    new JsonSerializationException(message, inner!);
+
+            public string AddInfoTo(string message) =>
+                HasInfo ?
+                    $"{message} Path '{Path}', line {Line}, position {Position}." :
+                    message;
         }
     }
 }

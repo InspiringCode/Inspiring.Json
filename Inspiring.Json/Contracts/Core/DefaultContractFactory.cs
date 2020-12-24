@@ -18,7 +18,7 @@ namespace Inspiring.Contracts.Core {
                     .ToArray();
 
                 if (baseContracts.Length > 1) {
-                    throw new ArgumentException(Localized.CreateContract_DiscriminatorSpecifiedMultipleTimes.FormatWith(type.Name));
+                    throw new ArgumentException(LContracts.CreateContract_DiscriminatorSpecifiedMultipleTimes.FormatWith(type.Name));
                 }
 
                 if (baseContracts.Length == 1) {

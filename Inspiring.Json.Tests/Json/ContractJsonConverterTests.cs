@@ -7,7 +7,7 @@ using System.IO;
 using Xbehave;
 
 namespace Inspiring.Json.Tests {
-    public class JsonFeature : Feature {
+    public class ContractJsonConverterTests : Feature {
         private JsonSerializer Serializer;
 
         [Background]
@@ -33,7 +33,7 @@ namespace Inspiring.Json.Tests {
             WHEN["deserializing a JSON without discriminator property"] = () =>
                 ex = new Action(() => DeserializeJson<IBase>("\n{ 'Value': '1' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type") + "*")
+                    .WithMessage(LJson.Converter_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type") + "*")
                     .Which;
             
             THEN["the exception contains additional data"] = () => ex.Data["DiscriminatorName"].Should().Be("Type");
@@ -49,7 +49,7 @@ namespace Inspiring.Json.Tests {
             WHEN["deserializing a JSON without an invalid discrminator value"] = () =>
                 ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': '<INVALID>' }"))
                     .Should().Throw<JsonSerializationException>()
-                    .WithMessage(Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type") + "*")
+                    .WithMessage(LJson.Converter_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type") + "*")
                     .Which;
             THEN["the exception contains additional data"] = () => {
                 ex.Data["DiscriminatorName"].Should().Be("Type");

@@ -11,17 +11,27 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Localized.Designer.cs">
+    <Compile Update="Json\LJson.Designer.cs">
       <DesignTime>True</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Localized.resx</DependentUpon>
+      <DependentUpon>LJson.resx</DependentUpon>
+    </Compile>
+    <Compile Update="LContracts.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>LContracts.resx</DependentUpon>
     </Compile>
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Update="Localized.resx">
+    <EmbeddedResource Update="Json\LJson.resx">
       <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Localized.Designer.cs</LastGenOutput>
+      <LastGenOutput>LJson.Designer.cs</LastGenOutput>
+      <CustomToolNamespace>Inspiring.Json</CustomToolNamespace>
+    </EmbeddedResource>
+    <EmbeddedResource Update="LContracts.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>LContracts.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
 

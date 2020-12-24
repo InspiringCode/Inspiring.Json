@@ -83,7 +83,7 @@ namespace Inspiring.Json {
             if (String.IsNullOrEmpty(discriminator)) {
                 throw addContext(
                     position.CreateSerializationException(
-                        Localized.Deserialize_MissingDiscriminatorProperty.FormatWith(
+                        LJson.Converter_MissingDiscriminatorProperty.FormatWith(
                             objectType.Name,
                             hierarchy!.DiscriminatorName
                         )));
@@ -94,7 +94,7 @@ namespace Inspiring.Json {
             } catch (ContractException ex) {
                 throw addContext(
                     position.CreateSerializationException(
-                        Localized.Deserialize_InvalidDiscriminatorValue.FormatWith(
+                        LJson.Converter_InvalidDiscriminatorValue.FormatWith(
                             objectType.Name,
                             discriminator,
                             hierarchy!.DiscriminatorName),

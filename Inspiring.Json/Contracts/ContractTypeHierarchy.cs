@@ -33,17 +33,17 @@ namespace Inspiring.Contracts {
             }
 
             if (type.GetCustomAttribute<ContractAttribute>(inherit: false) == null) {
-                throw new ContractException(Localized.GetDiscriminatorValue_MissingContractAttribute.FormatWith(type.Name));
+                throw new ContractException(LContracts.GetDiscriminatorValue_MissingContractAttribute.FormatWith(type.Name));
             }
 
             if (type.Assembly.GetCustomAttribute<ContractAssemblyAttribute>() == null) {
                 throw new ContractException(
-                    Localized.GetDiscriminatorValue_MissingContractAssemblyAttribute.FormatWith(
+                    LContracts.GetDiscriminatorValue_MissingContractAssemblyAttribute.FormatWith(
                         type.Name,
                         type.Assembly.GetName().Name));
             }
 
-            throw new ContractException(Localized.GetDiscriminatorValue_InvalidContractType.FormatWith(type.Name));
+            throw new ContractException(LContracts.GetDiscriminatorValue_InvalidContractType.FormatWith(type.Name));
         }
 
         public Type ResolveType(string discriminatorValue) {
@@ -54,7 +54,7 @@ namespace Inspiring.Contracts {
                 return type;
             }
 
-            throw new ContractException(Localized.ResolveType_NotFound.FormatWith(discriminatorValue, BaseContractType.Name));
+            throw new ContractException(LContracts.ResolveType_NotFound.FormatWith(discriminatorValue, BaseContractType.Name));
         }
     }
 

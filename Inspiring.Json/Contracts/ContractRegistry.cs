@@ -29,7 +29,7 @@ namespace Inspiring.Contracts {
                 return info!;
             }
 
-            throw new ContractException(Localized.GetHierarchyInfo_NoContractType.FormatWith(type.Name));
+            throw new ContractException(LContracts.GetHierarchyInfo_NoContractType.FormatWith(type.Name));
         }
     }
 }

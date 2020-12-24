@@ -117,36 +117,19 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="CreateContract_DiscriminatorSpecifiedMultipleTimes" xml:space="preserve">
-    <value>Cannot get contract information for '{0}' because the 'DiscriminatorName' is specified more than once (on itself, its base types or implemented interfaces).</value>
-    <comment>0 = type</comment>
+  <data name="ArgumentExceptionOnDeserialization" xml:space="preserve">
+    <value>Cannot read '{0}' because property '{1}' is missing or invalid{3}: {2}</value>
+    <comment>0 = discriminator value, 1 = invalid property, 2 = exception message, 3 = position info</comment>
   </data>
-  <data name="Deserialize_InvalidDiscriminatorValue" xml:space="preserve">
+  <data name="Converter_InvalidDiscriminatorValue" xml:space="preserve">
     <value>Cannot deserialize to an object of type '{0}'. The value '{1}' for type property '{2}' is not a valid type name.</value>
     <comment>0 = base type, 1 = discriminator value, 2 = discriminator name</comment>
   </data>
-  <data name="Deserialize_MissingDiscriminatorProperty" xml:space="preserve">
+  <data name="Converter_MissingDiscriminatorProperty" xml:space="preserve">
     <value>Cannot deserialize to an object of type '{0}'. For abstract types the type property '{1}' has to be set in the JSON.</value>
     <comment>0 = base type, 1 = discriminator name</comment>
   </data>
-  <data name="GetDiscriminatorValue_InvalidContractType" xml:space="preserve">
-    <value>Cannot get a type discrminator value for type '{0}' because it is not a contract type.</value>
-    <comment>0 = type</comment>
-  </data>
-  <data name="GetDiscriminatorValue_MissingContractAssemblyAttribute" xml:space="preserve">
-    <value>Cannot get a type discrminator value for type '{0}'. Add the [ContractAssembly] attribute to the assembly '{1}' to include its contract types.</value>
-    <comment>0 = type, 1 = assembly of type</comment>
-  </data>
-  <data name="GetDiscriminatorValue_MissingContractAttribute" xml:space="preserve">
-    <value>Cannot get a type discrminator value for type '{0}'. Add a [Contract] attribute to the type definition to mark it as a contract type.</value>
-    <comment>0 = type</comment>
-  </data>
-  <data name="GetHierarchyInfo_NoContractType" xml:space="preserve">
-    <value>The type '{0}' is not a contract type. Neither it nor any of its base types or implemented interfaces has the [Contract(DiscriminatorName = ...)] attribute applied to it.</value>
-    <comment>0 = type</comment>
-  </data>
-  <data name="ResolveType_NotFound" xml:space="preserve">
-    <value>Cannot find a type for type discriminator value '{0}'. Make sure that '{0}' denotes a subtype of '{1}' and that the [Contract] attribute is applied to all subtypes of '{1}' and the [ContractAssembly] attribute to all assemblies containing contract types.</value>
-    <comment>0 = discriminator value, 1 = base type</comment>
+  <data name="PositionInfo" xml:space="preserve">
+    <value> (Path '{0}', line {1}, position {2})</value>
   </data>
 </root>

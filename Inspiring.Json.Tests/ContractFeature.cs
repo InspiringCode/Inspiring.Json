@@ -73,23 +73,23 @@ namespace Inspiring.Json.Tests {
                 reg.IsPolymorphic(typeof(IBaseA), out h);
                 new Action(() => h.GetDiscriminatorValue(typeof(Subclass_A2)))
                     .Should().Throw<ContractException>()
-                    .WithMessage(String.Format(Localized.GetDiscriminatorValue_MissingContractAttribute, nameof(Subclass_A2)));
+                    .WithMessage(String.Format(LContracts.GetDiscriminatorValue_MissingContractAttribute, nameof(Subclass_A2)));
             };
 
             WHEN["resolving the type of an invalid discriminator a ContractException is thrown"] = () =>
                 new Action(() => h.ResolveType("Subclass_B_2"))
                     .Should().Throw<ContractException>()
-                    .WithMessage(String.Format(Localized.ResolveType_NotFound, "Subclass_B_2", nameof(IBaseA)));
+                    .WithMessage(String.Format(LContracts.ResolveType_NotFound, "Subclass_B_2", nameof(IBaseA)));
 
             WHEN["reflecting a contract type that has specified the specified the discriminator name multiple times an ArgumentException is thrown"] = () =>
                 new Action(() => reg.IsPolymorphic(typeof(IBaseA_2), out _))
                     .Should().Throw<ArgumentException>()
-                    .WithMessage(String.Format(Localized.CreateContract_DiscriminatorSpecifiedMultipleTimes, nameof(IBaseA_2)));
+                    .WithMessage(String.Format(LContracts.CreateContract_DiscriminatorSpecifiedMultipleTimes, nameof(IBaseA_2)));
 
             WHEN["getting the hierarchy of a non contract class THEN a ContractException is thrown"] = () =>
                 new Action(() => reg.GetHierarchyInfo(typeof(InvalidContractClass)))
                     .Should().Throw<ContractException>()
-                    .WithMessage(String.Format(Localized.GetHierarchyInfo_NoContractType, nameof(InvalidContractClass)));
+                    .WithMessage(String.Format(LContracts.GetHierarchyInfo_NoContractType, nameof(InvalidContractClass)));
         }
 
         internal class TestContractFactory : DefaultContractFactory<ContractAttribute> {

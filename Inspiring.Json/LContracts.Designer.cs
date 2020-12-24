@@ -22,14 +22,14 @@ namespace Inspiring.Json {
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class Localized {
+    internal class LContracts {
         
         private static global::System.Resources.ResourceManager resourceMan;
         
         private static global::System.Globalization.CultureInfo resourceCulture;
         
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal Localized() {
+        internal LContracts() {
         }
         
         /// <summary>
@@ -39,7 +39,7 @@ namespace Inspiring.Json {
         internal static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Inspiring.Json.Localized", typeof(Localized).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("Inspiring.Json.LContracts", typeof(LContracts).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -66,24 +66,6 @@ namespace Inspiring.Json {
         internal static string CreateContract_DiscriminatorSpecifiedMultipleTimes {
             get {
                 return ResourceManager.GetString("CreateContract_DiscriminatorSpecifiedMultipleTimes", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot deserialize to an object of type &apos;{0}&apos;. The value &apos;{1}&apos; for type property &apos;{2}&apos; is not a valid type name..
-        /// </summary>
-        internal static string Deserialize_InvalidDiscriminatorValue {
-            get {
-                return ResourceManager.GetString("Deserialize_InvalidDiscriminatorValue", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Cannot deserialize to an object of type &apos;{0}&apos;. For abstract types the type property &apos;{1}&apos; has to be set in the JSON..
-        /// </summary>
-        internal static string Deserialize_MissingDiscriminatorProperty {
-            get {
-                return ResourceManager.GetString("Deserialize_MissingDiscriminatorProperty", resourceCulture);
             }
         }
         

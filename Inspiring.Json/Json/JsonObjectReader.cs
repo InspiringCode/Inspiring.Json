@@ -35,17 +35,21 @@ namespace Inspiring.Json {
     /// ]]></code>
     /// </example>
     public class JsonObjectReader<T> : IDisposable where T : class {
+        private static readonly JsonSerializerSettings __defaultSettings = CreateDefaultSettings();
+
         private readonly JsonReader _reader;
         private Func<T, JObject, Task>? _onObjectRead;
         private Func<string, JObject, Exception?, Task>? _onObjectError;
         private Func<string, Exception?, Task>? _onDocumentError;
+        private JsonSerializerSettings _settings;
 
-        protected JsonObjectReader(string json)
-            : this(new JsonTextReader(new StringReader(json)) { CloseInput = true }) { }
+        protected JsonObjectReader(string json, JsonSerializerSettings? settings = null)
+            : this(new JsonTextReader(new StringReader(json)) { CloseInput = true }, settings) { }
 
-        protected JsonObjectReader(JsonReader reader) {
+        protected JsonObjectReader(JsonReader reader, JsonSerializerSettings? settings = null) {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             _reader.SupportMultipleContent = true;
+            _settings = settings ?? __defaultSettings;
         }
 
         /// <summary>
@@ -53,9 +57,7 @@ namespace Inspiring.Json {
         /// <see cref="OnObjectError"/> or <see cref="OnDocumentError"/>.
         /// </summary>
         public async Task ReadAsync() {
-            JsonSerializerSettings settings = new JsonSerializerSettings();
-            ConfigureSettings(settings);
-            JsonSerializer serializer = JsonSerializer.Create(settings);
+            JsonSerializer serializer = JsonSerializer.Create(_settings);
 
             try {
                 while (await _reader.ReadAsync()) {
@@ -100,9 +102,10 @@ namespace Inspiring.Json {
             string json,
             Func<T, JObject, Task>? onObjectRead = null,
             Func<string, JObject, Exception?, Task>? onObjectError = null,
-            Func<string, Exception?, Task>? onDocumentError = null
+            Func<string, Exception?, Task>? onDocumentError = null,
+            JsonSerializerSettings? settings = null
         ) {
-            return new JsonObjectReader<T>(json) {
+            return new JsonObjectReader<T>(json, settings) {
                 _onObjectRead = onObjectRead,
                 _onObjectError = onObjectError,
                 _onDocumentError = onDocumentError
@@ -113,9 +116,10 @@ namespace Inspiring.Json {
             JsonReader reader,
             Func<T, JObject, Task>? onObjectRead = null,
             Func<string, JObject, Exception?, Task>? onObjectError = null,
-            Func<string, Exception?, Task>? onDocumentError = null
+            Func<string, Exception?, Task>? onDocumentError = null, 
+            JsonSerializerSettings? settings = null
         ) {
-            return new JsonObjectReader<T>(reader) {
+            return new JsonObjectReader<T>(reader, settings) {
                 _onObjectRead = onObjectRead,
                 _onObjectError = onObjectError,
                 _onDocumentError = onDocumentError
@@ -143,10 +147,6 @@ namespace Inspiring.Json {
         protected virtual Task OnObjectRead(T obj, JObject json)
             => _onObjectRead?.Invoke(obj, json) ?? Task.CompletedTask;
 
-        protected virtual void ConfigureSettings(JsonSerializerSettings settings) {
-            settings.Converters.Add(ContractJsonConverter.Default);
-        }
-
         /// <summary>
         /// Called when the instantiation of the target object type throws any <see cref="ArgumentException"/>. Uses <see cref="ArgumentException.ParamName"/>
         /// to guess the JSON property name (by capitalizing the first letter) and calls <see cref="OnObjectError"/> with an
@@ -173,6 +173,12 @@ namespace Inspiring.Json {
                 LJson.ArgumentExceptionOnDeserialization.FormatWith(discriminatorValue, propertyName, message, pos?.Format()),
                 json,
                 ex);
+        }
+
+        private static JsonSerializerSettings CreateDefaultSettings() {
+            var s = new JsonSerializerSettings();
+            s.Converters.Add(ContractJsonConverter.Default);
+            return s;
         }
 
         protected class ReaderPositionInfo {

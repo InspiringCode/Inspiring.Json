@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace Inspiring.Contracts {
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false, Inherited = true)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface, AllowMultiple = false, Inherited = false)]
     public class ContractAttribute : Attribute {
         public ContractAttribute() { }
 

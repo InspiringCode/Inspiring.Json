@@ -90,6 +90,18 @@ namespace Inspiring.Json.Tests {
                 new Action(() => reg.GetHierarchyInfo(typeof(InvalidContractClass)))
                     .Should().Throw<ContractException>()
                     .WithMessage(String.Format(LContracts.GetHierarchyInfo_NoContractType, nameof(InvalidContractClass)));
+
+            WHEN["the discriminator is name is specified on an abstract class"] = () => reg = new ContractRegistry(
+                factory = new TestContractFactory {
+                    RelatedTypes = new[] {
+                        typeof(BaseClass),
+                        typeof(BaseClassSubSubClass) }
+                });
+
+            THEN["IsPolymorphic is true for contract types of a hierarchy"] = () => {
+                reg.IsPolymorphic(typeof(BaseClass), out _).Should().BeTrue();
+                reg.IsPolymorphic(typeof(BaseClassSubSubClass), out _).Should().BeTrue();
+            };
         }
 
         internal class TestContractFactory : DefaultContractFactory<ContractAttribute> {
@@ -127,5 +139,13 @@ namespace Inspiring.Json.Tests {
 
         [Contract]
         public class InvalidContractClass { }
+
+        [Contract(DiscriminatorName = "Type")]
+        private abstract class BaseClass { }
+
+        private abstract class BaseClassSubClass : BaseClass { }
+
+        [Contract("SubSub")]
+        private class BaseClassSubSubClass : BaseClassSubClass { }
     }
 }

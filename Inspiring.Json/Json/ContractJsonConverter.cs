@@ -101,6 +101,15 @@ namespace Inspiring.Json {
                         ex));
             }
 
+            // We remove the discriminator attribute before doing the deserialization of the actual
+            // concrete class for the following reasons:
+            //   1. If somebody uses the JsonExtensionDataAttribute, we propbably don't want the descriminator
+            //      property to be including in this list of extra attributes.
+            //   2. More importantly, if somebody uses the MissingMemberHandling.Error flag, Json.NET would
+            //      always throw an exception because the discriminator attribute is usually not mapped to
+            //      any .NET member.
+            json.Remove(hierarchy!.DiscriminatorName);
+
             try {
                 return serializer.Deserialize(json.CreateReader(), subtype)!;
             } catch (Exception ex) {

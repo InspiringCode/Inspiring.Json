@@ -3,6 +3,7 @@ using Inspiring.Contracts;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Xbehave;
 
@@ -88,6 +89,14 @@ namespace Inspiring.Json.Tests {
             };
         }
 
+        [Scenario]
+        internal void DiscriminatorAttributeHandling(Subtype result) {
+            WHEN["deserializing a polymorphic object"] = () =>
+                result = (Subtype)DeserializeJson<IBase>("{ 'Type': 'Subtype' }");
+            THEN["the discriminator attribute is removed before deserializing the concrete object"] = () =>
+                result.ExtraProperties.Should().BeEmpty();
+        }
+
         public class ContainerClass {
             public IBase Value { get; set; }
         }
@@ -100,6 +109,9 @@ namespace Inspiring.Json.Tests {
             public string Value { get; }
 
             public int IntValue { get; set; }
+
+            [JsonExtensionData]
+            public IDictionary<string, JToken> ExtraProperties { get; set; } = new Dictionary<string, JToken>();
 
             public Subtype(string value) {
                 if (value == "INVALID")

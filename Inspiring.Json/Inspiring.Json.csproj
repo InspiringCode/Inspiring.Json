@@ -4,6 +4,13 @@
     <LangVersion>8.0</LangVersion>
     <TargetFramework>netstandard2.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <Version>1.0.0</Version>
+    <Title>$(AssemblyName)</Title>
+    <Authors>Daniel Berghold</Authors>
+    <PackageTags>json,json.net,polymorphism,inheritance,nswag</PackageTags>
+    <RepositoryUrl>https://github.com/InspiringCode/Inspiring.Json.git</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/InspiringCode/Inspiring.Json</PackageProjectUrl>
+    <Description>A small library to add clean and robust inheritance support to JSON.NET and NSwag.</Description>
   </PropertyGroup>
 
   <ItemGroup>

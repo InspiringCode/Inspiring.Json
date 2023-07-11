@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <LangVersion>8.0</LangVersion>
+    <LangVersion>latest</LangVersion>
     <TargetFramework>netstandard2.0</TargetFramework>
     <nullable>enable</nullable>
     <Description>A small library to add clean and robust inheritance support to JSON.NET and NSwag.</Description>
@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NJsonSchema" Version="10.1.11" />
+    <PackageReference Include="NJsonSchema" Version="10.7.0" />
   </ItemGroup>
 
   <ItemGroup>

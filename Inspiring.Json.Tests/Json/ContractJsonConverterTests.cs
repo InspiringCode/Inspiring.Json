@@ -1,98 +1,115 @@
-﻿using FluentAssertions;
-using Inspiring.Contracts;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using Xbehave;
+using System.Linq;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Inspiring.Contracts;
 
 namespace Inspiring.Json.Tests {
     public class ContractJsonConverterTests : Feature {
-        private JsonSerializer Serializer;
-
-        [Background]
-        public void Background() {
-            GIVEN["a serializer"] = () => Serializer = new JsonSerializer {
-                Converters = { ContractJsonConverter.Default }
-            };
-        }
+        private readonly JsonSerializerOptions _options = new JsonSerializerOptions {
+            TypeInfoResolver = new ContractJsonTypeInfoResolver()
+        };
 
         [Scenario]
-        internal void SerializationTests(ContainerClass orig, JObject json, ContainerClass result) {
-            WHEN["serialzing a class with a polymorphic property"] = () => json = SerializeJson(
-                orig = new ContainerClass { Value = new Subtype_1_1 { Value1 = "TEST" } });
-            THEN["the discriminator is written to the JSON"] = () =>
-                ((string)json.SelectToken("$.Value.Type")).Should().Be("ST-1-1");
+        internal void SerializationTests(ContainerClass orig, JsonDocument json, ContainerClass result) {
+            WHEN["serializing a class with a polymorphic property"] = () => json = SerializeJson(
+                orig = new ContainerClass { Value = new Subtype_2_1 { Value1 = "TEST" } });
+            THEN["the discriminator is written to the JSON"] = () => json
+                .RootElement.GetProperty("Value")
+                .GetProperty("Type").GetString()
+                .Should().Be("ST-2-1");
             AND["the JSON can be deserialized"] = () => result = DeserializeJson<ContainerClass>(json);
             AND["the result is equivalent to the original"] = () => result.Should().BeEquivalentTo(orig);
         }
 
+        [Scenario]
+        internal void JsonTypeInfo(ContractJsonTypeInfoResolver r, JsonPolymorphismOptions p) {
+            GIVEN["a resolver"] = () => r = new ContractJsonTypeInfoResolver();
+
+            WHEN["getting the info for a root class"] = () => p = r
+                .GetTypeInfo(typeof(IBase), new())
+                .PolymorphismOptions;
+            THEN["it has the configured discriminator value"] = () => p.TypeDiscriminatorPropertyName.Should().Be(IBase.DiscriminatorName);
+            AND["DerivedTypes includes all subconstracts"] = () => p
+                .DerivedTypes.Select(x => x.DerivedType)
+                .Should().BeEquivalentTo(new[] { typeof(Subtype_1), typeof(Subtype_1_2), typeof(Subtype_2_1) });
+
+            WHEN["getting the info for a subtype"] = () => p = r
+                .GetTypeInfo(typeof(Subtype_1), new())
+                .PolymorphismOptions;
+            THEN["it has the configured discriminator value"] = () => p.TypeDiscriminatorPropertyName.Should().Be(IBase.DiscriminatorName);
+            AND["DerivedTypes does not include the type itself"] = () => p.DerivedTypes.Should().NotContain(jt => jt.DerivedType == typeof(Subtype_1));
+            AND["DerivedTypes includes all subconstracts"] = () => p
+                .DerivedTypes.Select(x => x.DerivedType)
+                .Should().BeEquivalentTo(new[] { typeof(Subtype_1_2) });
+
+            WHEN["getting the info for a subtype"] = () => p = r
+                .GetTypeInfo(typeof(Subtype_2_1), new())
+                .PolymorphismOptions;
+            THEN["the PolymorphismOptions are null"] = () => p.Should().BeNull();
+        }
+
 
         [Scenario]
-        internal void NoDiscriminatorValueInJson(JsonSerializationException ex) {
+        internal void NoDiscriminatorValueInJson(Action act) {
             WHEN["deserializing a JSON without discriminator property"] = () =>
-                ex = new Action(() => DeserializeJson<IBase>("\n{ 'Value': '1' }"))
-                    .Should().Throw<JsonSerializationException>()
-                    .WithMessage(LJson.Converter_MissingDiscriminatorProperty.FormatWith(nameof(IBase), "Type") + "*")
-                    .Which;
-            
-            THEN["the exception contains additional data"] = () => ex.Data["DiscriminatorName"].Should().Be("Type");
-            AND["it contains position information"] = () => {
-                ex.LineNumber.Should().Be(2);
-                ex.LinePosition.Should().Be(1);
-                ex.Message.Should().Contain("line 2, position 1");
+                act = new Action(() => DeserializeJson<IBase>("\n" + """{ "Value": "1" }"""));
+
+            // TODO
+            //THEN["the exception contains additional data"] = () => ex.Data["DiscriminatorName"].Should().Be("Type");
+
+            THEN["an exception is thrown"] = () => {
+                NotSupportedException ex = act.Should().Throw<NotSupportedException>().Which;
+                //ex.LineNumber.Should().Be(2 -1);
+                //ex.BytePositionInLine.Should().Be(1);
             };
         }
 
         [Scenario]
-        internal void InvalidDiscriminatorValueInJson(JsonSerializationException ex) {
-            WHEN["deserializing a JSON without an invalid discrminator value"] = () =>
-                ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': '<INVALID>' }"))
-                    .Should().Throw<JsonSerializationException>()
-                    .WithMessage(LJson.Converter_InvalidDiscriminatorValue.FormatWith(nameof(IBase), "<INVALID>", "Type") + "*")
-                    .Which;
-            THEN["the exception contains additional data"] = () => {
-                ex.Data["DiscriminatorName"].Should().Be("Type");
-                ex.Data["DiscriminatorValue"].Should().Be("<INVALID>");
-            };
-            AND["it contains position information"] = () => {
-                ex.LineNumber.Should().Be(3);
-                ex.LinePosition.Should().Be(1);
-                ex.Message.Should().Contain("line 3, position 1");
-            };
+        internal void InvalidDiscriminatorValueInJson(Action act) {
+            WHEN["deserializing a JSON without an invalid discriminator value"] = () =>
+                act = new Action(() => DeserializeJson<IBase>("\n\n" + """{ "Type": "<INVALID>" }"""));
+            THEN["an exception is thrown"] = () => act
+                    .Should().Throw<JsonException>()
+                    .WithMessage("*discriminator*<INVALID>*");
         }
 
         [Scenario]
         internal void ExceptionData(ArgumentOutOfRangeException ex) {
             WHEN["the object constructor throws an exception"] = () =>
-                ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': 'Subtype', 'Value': 'INVALID' }"))
+                ex = new Action(() => DeserializeJson<IBase>("""{ "Type": "Subtype_1", "Value": "INVALID" }"""))
                     .Should().Throw<ArgumentOutOfRangeException>()
                     .Which;
-            THEN["the exception contains additional data"] = () => {
-                ex.Data["DiscriminatorName"].Should().Be("Type");
-                ex.Data["DiscriminatorValue"].Should().Be("Subtype");
-                ex.Data["TargetType"].Should().Be(typeof(Subtype));
+
+            // TODO: Adapt to System.Text.Json. One could probably plug in some custom converter
+            //       that catches and enriches the exception.
+
+            //THEN["the exception contains additional data"] = () => {
+            //    ex.Data["DiscriminatorName"].Should().Be("Type");
+            //    ex.Data["DiscriminatorValue"].Should().Be("Subtype");
+            //    ex.Data["TargetType"].Should().Be(typeof(Subtype));
+            //};
+        }
+
+        [Scenario]
+        internal void PositionInfo(Action act) {
+            WHEN["the deserialization fails"] = () => act = new Action(() =>
+                    DeserializeJson<IBase>("\n\n" + """{ "Type": "Subtype_1", "IntValue": "INVALID" }"""));
+
+            THEN["an exception with the correct position info is thrown"] = () => {
+                JsonException ex = act.Should().Throw<JsonException>().Which;
+                ex.LineNumber.Should().Be(3 - 1);
+                ex.BytePositionInLine.Should().Be(44);
+                ex.Message.Should().Match("*IntValue*Line*2*Position*44*");
             };
         }
 
         [Scenario]
-        internal void PositionInfo(JsonReaderException ex) {
-            WHEN["the deserialization fails"] = () => ex = new Action(() => DeserializeJson<IBase>("\n\n{ 'Type': 'Subtype', 'IntValue': 'INVALID' }"))
-                    .Should().Throw<JsonReaderException>()
-                    .Which;
-
-            THEN["the exception has the correct position info set"] = () => {
-                ex.LineNumber.Should().Be(3);
-                ex.LinePosition.Should().Be(42);
-                ex.Message.Should().Contain("Path 'IntValue', line 3, position 42");
-            };
-        }
-
-        [Scenario]
-        internal void DiscriminatorAttributeHandling(Subtype result) {
+        internal void DiscriminatorAttributeHandling(Subtype_1 result) {
             WHEN["deserializing a polymorphic object"] = () =>
-                result = (Subtype)DeserializeJson<IBase>("{ 'Type': 'Subtype' }");
+                result = (Subtype_1)DeserializeJson<IBase>("""{ "Type": "Subtype_1" }""");
             THEN["the discriminator attribute is removed before deserializing the concrete object"] = () =>
                 result.ExtraProperties.Should().BeEmpty();
         }
@@ -101,19 +118,23 @@ namespace Inspiring.Json.Tests {
             public IBase Value { get; set; }
         }
 
-        [Contract(DiscriminatorName = "Type")]
-        public interface IBase { }
+        [Contract(DiscriminatorName = DiscriminatorName)]
+        public interface IBase {
+            public const string DiscriminatorName = "Type";
+        }
 
         [Contract]
-        public class Subtype : IBase {
+        public class Subtype_1 : IBase {
+            public const string DiscriminatorValue = nameof(Subtype_1);
+
             public string Value { get; }
 
             public int IntValue { get; set; }
 
             [JsonExtensionData]
-            public IDictionary<string, JToken> ExtraProperties { get; set; } = new Dictionary<string, JToken>();
+            public Dictionary<string, JsonElement> ExtraProperties { get; set; } = new();
 
-            public Subtype(string value) {
+            public Subtype_1(string value) {
                 if (value == "INVALID")
                     throw new ArgumentOutOfRangeException(nameof(value));
 
@@ -121,25 +142,31 @@ namespace Inspiring.Json.Tests {
             }
         }
 
-        public class Subtype_1 : IBase {
+        [Contract]
+        public class Subtype_1_2 : Subtype_1 {
+            public Subtype_1_2(string value) : base(value) { }
+        }
+
+        public class Subtype_2 : IBase {
             public string Value1 { get; set; }
         }
 
-        [Contract(DiscriminatorValue = "ST-1-1")]
-        public class Subtype_1_1 : Subtype_1 {
+        [Contract(DiscriminatorValue = DiscriminatorValue)]
+        public class Subtype_2_1 : Subtype_2 {
+            public const string DiscriminatorValue = "ST-2-1";
+
             public string Value2 { get; set; }
         }
 
-        private JObject SerializeJson(object value) {
-            using JTokenWriter writer = new JTokenWriter();
-            Serializer.Serialize(writer, value);
-            return (JObject)writer.Token;
+        private JsonDocument SerializeJson(object value) {
+            string json = JsonSerializer.Serialize(value, _options);
+            return JsonDocument.Parse(json);
         }
 
-        private T DeserializeJson<T>(JObject json)
-            => (T)Serializer.Deserialize<T>(json.CreateReader());
+        private T DeserializeJson<T>(JsonDocument json)
+            => json.Deserialize<T>(_options);
 
         private T DeserializeJson<T>(string json)
-            => (T)Serializer.Deserialize<T>(new JsonTextReader(new StringReader(json)));
+            => JsonSerializer.Deserialize<T>(json, _options);
     }
 }

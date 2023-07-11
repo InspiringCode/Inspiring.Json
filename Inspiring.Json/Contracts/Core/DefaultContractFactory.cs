@@ -12,25 +12,37 @@ namespace Inspiring.Contracts.Core {
 
         public IContract CreateContract(Type type) {
             if (type.GetCustomAttribute<TAttribute>(inherit: false) != null) {
-                var baseContracts = GetTypeWithBaseTypes(type)
-                    .Select(t => (Type: t, DiscriminatorName: t.GetDiscriminatorName<TAttribute>()))
-                    .Where(x => !String.IsNullOrWhiteSpace(x.DiscriminatorName))
-                    .ToArray();
-
-                if (baseContracts.Length > 1) {
-                    throw new ArgumentException(LContracts.CreateContract_DiscriminatorSpecifiedMultipleTimes.FormatWith(type.Name));
-                }
-
-                if (baseContracts.Length == 1) {
+                if (GetRootContractType(type, out Type? rootType, out string? discriminatorName)) {
                     ContractTypeHierarchy hierarchy = _hierarchyCache.GetOrAdd(
-                        baseContracts[0].Type,
-                        t => CreateHierarchy(t, baseContracts[0].DiscriminatorName!));
+                        rootType!,
+                        t => CreateHierarchy(t, discriminatorName!));
 
                     return new PolymorphicContract(hierarchy);
                 }
             }
 
             return NullContract.Instance;
+        }
+
+        protected virtual bool GetRootContractType(Type t, out Type? rootType, out string? discriminatorName) {
+            (Type Type, string? DiscriminatorName)[] baseContracts = GetTypeWithBaseTypes(t)
+                .Select(t => (Type: t, DiscriminatorName: t.GetDiscriminatorName<TAttribute>()))
+                .Where(x => !String.IsNullOrWhiteSpace(x.DiscriminatorName))
+                .ToArray();
+
+            if (baseContracts.Length > 1) {
+                throw new ArgumentException(LContracts.CreateContract_DiscriminatorSpecifiedMultipleTimes.FormatWith(t.Name));
+            }
+
+            if (baseContracts.Length == 1) {
+                rootType = baseContracts[0].Type;
+                discriminatorName = baseContracts[0].DiscriminatorName!;
+                return true;
+            }
+
+            rootType = null;
+            discriminatorName = null;
+            return false;
         }
 
         protected virtual IEnumerable<Type> GetRelatedTypes(Type type) =>

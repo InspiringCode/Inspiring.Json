@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Inspiring.Contracts;
@@ -30,53 +32,88 @@ namespace Inspiring.Json.NSwag {
             if (context.Schema.HasReference)
                 return;
 
-            JsonTypeInfo info = _options.GetTypeInfo(context.ContextualType.Type);
-            if (info.PolymorphismOptions is { TypeDiscriminatorPropertyName: var discriminatorName }) {
-                context.Schema.Properties[discriminatorName] = new JsonSchemaProperty {
-                    Type = JsonObjectType.String,
-                    IsRequired = true
-                };
-
-                OpenApiDiscriminator discriminatorObject = new() { PropertyName = discriminatorName };
-
-                foreach (JsonDerivedType dt in info.PolymorphismOptions.DerivedTypes) {
-                    if (dt.TypeDiscriminator != null && DerivedTypeFilter(dt.DerivedType)) {
-                        discriminatorObject.Mapping.Add(
-                            dt.TypeDiscriminator.ToString(),
-                            new JsonSchema { Reference = GetSchema(context, dt.DerivedType) });
-                    }
-                }
-
-                // IMPORTANT: It is crucial that we REPLACE the discriminator object here, because
-                //            NJsonSchema always adds a 'Mapping' element with the class name of the
-                //            derived type as key: When the schema for a derived type is generated,
-                //            it calls 'JsonSchemaGenerator.GenerateInheritanceDiscriminator' for the
-                //            base type which ALWAYS adds the mapping. This leads to an ArgumentException
-                //            if the PolymorphismOptions also return the class name as discriminator
-                //            value or to multiple (incorrect) discriminator values for a single
-                //            derived type.
-                context.Schema.DiscriminatorObject = discriminatorObject;
-            }
-
             // If we have no other (OpenAPI) base type and have a single contract interface, we add
             // the interface as an OpenAPI base type (AllOf item).
-            if (context.Schema.AllOf.Count == 0) {
-                Type[] contractInterfaces = context
-                    .ContextualType.Type
-                    .GetInterfaces()
-                    .Where(i => i.GetCustomAttribute<ContractAttribute>() != null)
-                    .ToArray();
+            if (context.Schema.AllOf.Count == 0 &&
+                implementsUniqueContractInterface(context.ContextualType.Type, out Type contractInterface)) {
 
-                if (contractInterfaces.Length == 1) {
-                    JsonSchema baseSchema = GetSchema(context, contractInterfaces[0]);
-                    context.Schema.AllOf.Add(new JsonSchema { Reference = baseSchema });
+                JsonSchema baseSchema = GetSchema(context, contractInterface);
+                context.Schema.AllOf.Add(new JsonSchema { Reference = baseSchema });
 
-                    foreach (string baseProperty in baseSchema.Properties.Keys) {
-                        context.Schema.Properties.Remove(baseProperty);
-                        context.Schema.RequiredProperties.Remove(baseProperty);
+                foreach (string baseProperty in getAllProperties(baseSchema)) {
+                    context.Schema.Properties.Remove(baseProperty);
+                    context.Schema.RequiredProperties.Remove(baseProperty);
+                }
+            } else {
+                addDiscriminatorObject(context);
+            }
+
+            void addDiscriminatorObject(SchemaProcessorContext context) {
+                JsonTypeInfo info = _options.GetTypeInfo(context.ContextualType.Type);
+                if (info.PolymorphismOptions is { TypeDiscriminatorPropertyName: var discriminatorName }) {
+                    context.Schema.Properties[discriminatorName] = new JsonSchemaProperty {
+                        Type = JsonObjectType.String,
+                        IsRequired = true
+                    };
+
+                    OpenApiDiscriminator discriminatorObject = new() { PropertyName = discriminatorName };
+
+                    foreach (JsonDerivedType dt in info.PolymorphismOptions.DerivedTypes) {
+                        if (dt.TypeDiscriminator != null && DerivedTypeFilter(dt.DerivedType)) {
+                            discriminatorObject.Mapping.Add(
+                                dt.TypeDiscriminator.ToString(),
+                                new JsonSchema { Reference = GetSchema(context, dt.DerivedType) });
+                        }
                     }
+
+                    // IMPORTANT: It is crucial that we REPLACE the discriminator object here, because
+                    //            NJsonSchema always adds a 'Mapping' element with the class name of the
+                    //            derived type as key: When the schema for a derived type is generated,
+                    //            it calls 'JsonSchemaGenerator.GenerateInheritanceDiscriminator' for the
+                    //            base type which ALWAYS adds the mapping. This leads to an ArgumentException
+                    //            if the PolymorphismOptions also return the class name as discriminator
+                    //            value or to multiple (incorrect) discriminator values for a single
+                    //            derived type.
+                    context.Schema.DiscriminatorObject = discriminatorObject;
                 }
             }
+
+
+            // gets the properties of the given schema and all base schemas
+            static IEnumerable<string> getAllProperties(JsonSchema schema) {
+                return schema.ActualSchema.Properties.Keys.Concat(schema
+                    .AllOf
+                    .SelectMany(x => getAllProperties(x)));
+            }
+
+            static bool implementsUniqueContractInterface(Type t, [MaybeNullWhen(false)] out Type contractInterface) {
+                Type[] contractInterfaces = getContractInterfaces(t).ToArray();
+
+                if (contractInterfaces.Length == 1) {
+                    contractInterface = contractInterfaces[0];
+                    return true;
+                }
+
+                // GetInterfaces() also returns all base interfaces of our implemented interfaces. We get
+                // the directly implemented interfaces by removes all base interfaces of all implemented
+                // interfaces from our list of interfaces.
+                HashSet<Type> immediateContractInterfaces = new(contractInterfaces);
+
+                foreach (Type i in contractInterfaces)
+                    immediateContractInterfaces.ExceptWith(i.GetInterfaces());
+
+                if (immediateContractInterfaces.Count == 1) {
+                    contractInterface = immediateContractInterfaces.Single();
+                    return true;
+                }
+
+                contractInterface = null!;
+                return false;
+            }
+
+            static IEnumerable<Type> getContractInterfaces(Type t) => t
+                .GetInterfaces()
+                .Where(i => i.GetCustomAttribute<ContractAttribute>() != null);
         }
 
         private static JsonSchema GetSchema(SchemaProcessorContext context, Type t) {

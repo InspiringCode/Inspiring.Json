@@ -48,12 +48,13 @@ namespace Inspiring.Json.Tests {
                     Subclass_2_1.DiscriminatorValue,
                     Subclass_2_2.DiscriminatorValue);
             };
-            AND["any non-leaf derived classes have correct discriminator objects"] = () => {
-                OpenApiDiscriminator sub2Disc = schema.Definitions[nameof(Subclass_2)].DiscriminatorObject;
-                sub2Disc.PropertyName.Should().Be(IBase.DiscriminatorName);
-                sub2Disc.Mapping.Keys.Should().BeEquivalentTo(
-                    Subclass_2_1.DiscriminatorValue,
-                    Subclass_2_2.DiscriminatorValue);
+            AND["derived types that inherit from a base type do not have discriminator objects"] = () => {
+                schema.Definitions[nameof(Subclass_2)].DiscriminatorObject.Should().BeNull();
+                //OpenApiDiscriminator sub2Disc = schema.Definitions[nameof(Subclass_2)].DiscriminatorObject;
+                //sub2Disc.PropertyName.Should().Be(IBase.DiscriminatorName);
+                //sub2Disc.Mapping.Keys.Should().BeEquivalentTo(
+                //    Subclass_2_1.DiscriminatorValue,
+                //    Subclass_2_2.DiscriminatorValue);
 
             };
             AND["leaf classes have no discriminator objects"] = () => schema
